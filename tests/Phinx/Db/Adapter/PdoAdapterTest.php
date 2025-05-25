@@ -7,6 +7,7 @@ use PDO;
 use PDOException;
 use Phinx\Config\Config;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use RuntimeException;
 use Test\Phinx\DeprecationException;
 use Test\Phinx\TestUtils;
@@ -202,5 +203,47 @@ class PdoAdapterTest extends TestCase
 
         $this->adapter->setConnection($pdo);
         $this->adapter->execute('SELECT 1;;');
+    }
+
+    public function testQuoteValueNumeric()
+    {
+        $method = new ReflectionMethod($this->adapter, 'quoteValue');
+        $this->assertSame(1.0, $method->invoke($this->adapter, 1.0));
+        $this->assertSame(2, $method->invoke($this->adapter, 2));
+    }
+
+    public function testQuoteValueBoolean()
+    {
+        $method = new ReflectionMethod($this->adapter, 'quoteValue');
+        $this->assertSame(1, $method->invoke($this->adapter, true));
+        $this->assertSame(0, $method->invoke($this->adapter, false));
+    }
+
+    public function testQuoteValueNull()
+    {
+        $method = new ReflectionMethod($this->adapter, 'quoteValue');
+        $this->assertSame('null', $method->invoke($this->adapter, null));
+    }
+
+    public function testQuoteValueString()
+    {
+        $mockValue = 'mockvalue';
+        $expectedValue = 'mockvalueexpected';
+
+        /** @var \PDO&\PHPUnit\Framework\MockObject\MockObject $pdo */
+        $pdo = $this->getMockBuilder(PDO::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['quote'])
+            ->getMock();
+
+        $pdo->expects($this->once())
+            ->method('quote')
+            ->with($mockValue)
+            ->willReturn($expectedValue);
+
+        $this->adapter->setConnection($pdo);
+
+        $method = new ReflectionMethod($this->adapter, 'quoteValue');
+        $this->assertSame($expectedValue, $method->invoke($this->adapter, $mockValue));
     }
 }

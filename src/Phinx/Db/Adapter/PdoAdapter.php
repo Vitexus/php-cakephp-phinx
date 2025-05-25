@@ -391,6 +391,10 @@ abstract class PdoAdapter extends AbstractAdapter implements DirectActionInterfa
             return $value;
         }
 
+        if (is_bool($value)) {
+            return $this->castToBool($value);
+        }
+
         if ($value === null) {
             return 'null';
         }
