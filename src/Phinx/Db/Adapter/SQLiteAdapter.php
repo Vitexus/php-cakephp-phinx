@@ -14,6 +14,7 @@ use Cake\Database\Driver\Sqlite as SqliteDriver;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
+use Phinx\Db\Action\AddForeignKey;
 use Phinx\Db\Table\Column;
 use Phinx\Db\Table\ForeignKey;
 use Phinx\Db\Table\Index;
@@ -139,6 +140,17 @@ class SQLiteAdapter extends PdoAdapter
     }
 
     /**
+     * Check if the given options represent a memory database
+     *
+     * @param array $options Options to check
+     * @return bool
+     */
+    public static function isMemory(array $options): bool
+    {
+        return !empty($options['memory']) || ($options['name'] ?? '') === static::MEMORY;
+    }
+
+    /**
      * {@inheritDoc}
      *
      * @throws \RuntimeException
@@ -171,7 +183,7 @@ class SQLiteAdapter extends PdoAdapter
                 $dsn = 'sqlite:file:' . ($options['name'] ?? '') . '?' . implode('&', $params);
             } else {
                 // use a memory database if the option was specified
-                if (!empty($options['memory']) || $options['name'] === static::MEMORY) {
+                if (SQLiteAdapter::isMemory($options)) {
                     $dsn = 'sqlite:' . static::MEMORY;
                 } else {
                     $dsn = 'sqlite:' . $options['name'] . $this->suffix;
@@ -204,7 +216,7 @@ class SQLiteAdapter extends PdoAdapter
      */
     public static function getSuffix(array $options): string
     {
-        if ($options['name'] === self::MEMORY) {
+        if (SQLiteAdapter::isMemory($options)) {
             return '';
         }
 
@@ -501,7 +513,7 @@ class SQLiteAdapter extends PdoAdapter
         if (!empty($primaryKey)) {
             $instructions->merge(
                 // FIXME: array access is a hack to make this incomplete implementation work with a correct getPrimaryKey implementation
-                $this->getDropPrimaryKeyInstructions($table, $primaryKey[0])
+                $this->getDropPrimaryKeyInstructions($table, $primaryKey[0]),
             );
         }
 
@@ -510,12 +522,12 @@ class SQLiteAdapter extends PdoAdapter
             if (!is_string($newColumns)) {
                 throw new InvalidArgumentException(sprintf(
                     'Invalid value for primary key: %s',
-                    json_encode($newColumns)
+                    json_encode($newColumns),
                 ));
             }
 
             $instructions->merge(
-                $this->getAddPrimaryKeyInstructions($table, $newColumns)
+                $this->getAddPrimaryKeyInstructions($table, $newColumns),
             );
         }
 
@@ -543,7 +555,7 @@ class SQLiteAdapter extends PdoAdapter
         $sql = sprintf(
             'ALTER TABLE %s RENAME TO %s',
             $this->quoteTableName($tableName),
-            $this->quoteTableName($newTableName)
+            $this->quoteTableName($newTableName),
         );
 
         return new AlterInstructions([], [$sql]);
@@ -570,7 +582,7 @@ class SQLiteAdapter extends PdoAdapter
         $this->execute(sprintf(
             'DELETE FROM %s.%s',
             $this->quoteColumnName($info['schema']),
-            $this->quoteColumnName($info['table'])
+            $this->quoteColumnName($info['table']),
         ));
 
         // assuming no error occurred, reset the autoincrement (if any)
@@ -579,7 +591,7 @@ class SQLiteAdapter extends PdoAdapter
                 'DELETE FROM %s.%s where name  = %s',
                 $this->quoteColumnName($info['schema']),
                 'sqlite_sequence',
-                $this->quoteString($info['table'])
+                $this->quoteString($info['table']),
             ));
         }
     }
@@ -712,7 +724,8 @@ PCRE_PATTERN;
         foreach ($rows as $columnInfo) {
             $column = new Column();
             $type = $this->getPhinxType($columnInfo['type']);
-            $default = $this->parseDefaultValue($columnInfo['dflt_value'], $type['name']);
+            // $type['name'] is string|Literal, convert it to be a string
+            $default = $this->parseDefaultValue($columnInfo['dflt_value'], (string)$type['name']);
 
             $column->setName($columnInfo['name'])
                 // SQLite on PHP 8.1 returns int for notnull, older versions return a string
@@ -765,15 +778,15 @@ PCRE_PATTERN;
             $sql = preg_replace(
                 sprintf(
                     "/(%s(?:\/\*.*?\*\/|\([^)]+\)|'[^']*?'|[^,])+)([,)])/",
-                    $this->quoteColumnName($finalColumnName)
+                    $this->quoteColumnName($finalColumnName),
                 ),
                 sprintf(
                     '$1, %s %s$2',
                     $this->quoteColumnName($column->getName()),
-                    $this->getColumnSqlDefinition($column)
+                    $this->getColumnSqlDefinition($column),
                 ),
                 $state['createSQL'],
-                1
+                1,
             );
             $this->execute($sql);
 
@@ -875,8 +888,8 @@ PCRE_PATTERN;
                             AND tbl_name = %s
                             AND sql IS NOT NULL
                     ",
-                    $this->quoteValue($tableName)
-                )
+                    $this->quoteValue($tableName),
+                ),
             );
 
             $schema = $this->getSchemaName($tableName, true)['schema'];
@@ -885,7 +898,7 @@ PCRE_PATTERN;
                 switch ($row['type']) {
                     case 'index':
                         $info = $this->fetchAll(
-                            sprintf('PRAGMA %sindex_info(%s)', $schema, $this->quoteValue($row['name']))
+                            sprintf('PRAGMA %sindex_info(%s)', $schema, $this->quoteValue($row['name'])),
                         );
 
                         $columns = array_map(
@@ -896,7 +909,7 @@ PCRE_PATTERN;
 
                                 return strtolower($column);
                             },
-                            array_column($info, 'name')
+                            array_column($info, 'name'),
                         );
                         $hasExpressions = in_array(null, $columns, true);
 
@@ -929,7 +942,7 @@ PCRE_PATTERN;
      */
     protected function filterIndicesForRemovedColumn(
         AlterInstructions $instructions,
-        string $columnName
+        string $columnName,
     ): AlterInstructions {
         $instructions->addPostStep(function (array $state) use ($columnName): array {
             foreach ($state['indices'] as $key => $index) {
@@ -958,7 +971,7 @@ PCRE_PATTERN;
     protected function updateIndicesForRenamedColumn(
         AlterInstructions $instructions,
         string $oldColumnName,
-        string $newColumnName
+        string $newColumnName,
     ): AlterInstructions {
         $instructions->addPostStep(function (array $state) use ($oldColumnName, $newColumnName): array {
             foreach ($state['indices'] as $key => $index) {
@@ -983,7 +996,7 @@ PCRE_PATTERN;
                     $state['indices'][$key]['sql'] = preg_replace(
                         sprintf($pattern, preg_quote($oldColumnName, '/')),
                         "\\1\\2$newColumnName\\4\\5\\6",
-                        $index['sql']
+                        $index['sql'],
                     );
                 }
             }
@@ -1022,57 +1035,52 @@ PCRE_PATTERN;
      * the given table, and of those tables whose constraints are
      * targeting it.
      *
-     * @param \Phinx\Db\Util\AlterInstructions $instructions The instructions to process
-     * @param string $tableName The name of the table for which to check constraints.
-     * @return \Phinx\Db\Util\AlterInstructions
+     * @param string|array<string> $tableNames The name of the table for which to check constraints.
+     * @return void
      */
-    protected function validateForeignKeys(AlterInstructions $instructions, string $tableName): AlterInstructions
+    protected function validateForeignKeys(string|array $tableNames): void
     {
-        $instructions->addPostStep(function ($state) use ($tableName) {
-            $tablesToCheck = [
-                $tableName,
-            ];
+        if (!is_array($tableNames)) {
+            $tableNames = [$tableNames];
+        }
 
-            $otherTables = $this
-                ->query(
-                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name != ?",
-                    [$tableName]
-                )
-                ->fetchAll();
+        $tablesToCheck = $tableNames;
 
-            foreach ($otherTables as $otherTable) {
-                $foreignKeyList = $this->getTableInfo($otherTable['name'], 'foreign_key_list');
-                foreach ($foreignKeyList as $foreignKey) {
-                    if (strcasecmp($foreignKey['table'], $tableName) === 0) {
-                        $tablesToCheck[] = $otherTable['name'];
-                        break;
-                    }
+        $otherTables = $this
+            ->query(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT IN (" . implode(',', array_fill(0, count($tableNames), '?')) . ')',
+                $tableNames,
+            )
+            ->fetchAll();
+
+        foreach ($otherTables as $otherTable) {
+            $foreignKeyList = $this->getTableInfo($otherTable['name'], 'foreign_key_list');
+            foreach ($foreignKeyList as $foreignKey) {
+                if (in_array(strtolower($foreignKey['table']), $tableNames)) {
+                    $tablesToCheck[] = $otherTable['name'];
+                    break;
                 }
             }
+        }
 
-            $tablesToCheck = array_unique(array_map('strtolower', $tablesToCheck));
+        $tablesToCheck = array_unique(array_map('strtolower', $tablesToCheck));
 
-            foreach ($tablesToCheck as $tableToCheck) {
-                $schema = $this->getSchemaName($tableToCheck, true)['schema'];
+        foreach ($tablesToCheck as $tableToCheck) {
+            $schema = $this->getSchemaName($tableToCheck, true)['schema'];
 
-                $stmt = $this->query(
-                    sprintf('PRAGMA %sforeign_key_check(%s)', $schema, $this->quoteTableName($tableToCheck))
-                );
-                $row = $stmt->fetch();
-                $stmt->closeCursor();
+            $stmt = $this->query(
+                sprintf('PRAGMA %sforeign_key_check(%s)', $schema, $this->quoteTableName($tableToCheck)),
+            );
+            $row = $stmt->fetch();
+            $stmt->closeCursor();
 
-                if (is_array($row)) {
-                    throw new RuntimeException(sprintf(
-                        'Integrity constraint violation: FOREIGN KEY constraint on `%s` failed.',
-                        $tableToCheck
-                    ));
-                }
+            if (is_array($row)) {
+                throw new RuntimeException(sprintf(
+                    'Integrity constraint violation: FOREIGN KEY constraint on `%s` failed.',
+                    $tableToCheck,
+                ));
             }
-
-            return $state;
-        });
-
-        return $instructions;
+        }
     }
 
     /**
@@ -1091,7 +1099,7 @@ PCRE_PATTERN;
             $this->quoteTableName($tableName),
             implode(', ', $writeColumns),
             implode(', ', $selectColumns),
-            $this->quoteTableName($tmpTableName)
+            $this->quoteTableName($tmpTableName),
         );
         $this->execute($sql);
     }
@@ -1111,14 +1119,14 @@ PCRE_PATTERN;
                 $state['tmpTableName'],
                 $tableName,
                 $state['writeColumns'],
-                $state['selectColumns']
+                $state['selectColumns'],
             );
 
             $this->execute(sprintf('DROP TABLE %s', $this->quoteTableName($tableName)));
             $this->execute(sprintf(
                 'ALTER TABLE %s RENAME TO %s',
                 $this->quoteTableName($state['tmpTableName']),
-                $this->quoteTableName($tableName)
+                $this->quoteTableName($tableName),
             ));
 
             return $state;
@@ -1167,7 +1175,7 @@ PCRE_PATTERN;
 
         if ($columnName && !$found) {
             throw new InvalidArgumentException(sprintf(
-                'The specified column doesn\'t exist: ' . $columnName
+                'The specified column doesn\'t exist: ' . $columnName,
             ));
         }
 
@@ -1198,7 +1206,7 @@ PCRE_PATTERN;
             $createSQL = preg_replace(
                 "/^CREATE TABLE .* \(/Ui",
                 '',
-                $createSQL
+                $createSQL,
             );
 
             $createSQL = "CREATE TABLE {$this->quoteTableName($tmpTableName)} ({$createSQL}";
@@ -1218,8 +1226,6 @@ PCRE_PATTERN;
      * @param ?string $renamedOrRemovedColumnName The name of the renamed or removed column when part of a column
      *  rename/drop operation.
      * @param ?string $newColumnName The new column name when part of a column rename operation.
-     * @param bool $validateForeignKeys Whether to validate foreign keys after the copy and drop operations. Note that
-     *  enabling this option only has an effect when the `foreign_keys` PRAGMA is set to `ON`!
      * @return \Phinx\Db\Util\AlterInstructions
      */
     protected function endAlterByCopyTable(
@@ -1227,7 +1233,6 @@ PCRE_PATTERN;
         string $tableName,
         ?string $renamedOrRemovedColumnName = null,
         ?string $newColumnName = null,
-        bool $validateForeignKeys = true
     ): AlterInstructions {
         $instructions = $this->bufferIndicesAndTriggers($instructions, $tableName);
 
@@ -1239,25 +1244,8 @@ PCRE_PATTERN;
             }
         }
 
-        $foreignKeysEnabled = (bool)$this->fetchRow('PRAGMA foreign_keys')['foreign_keys'];
-
-        if ($foreignKeysEnabled) {
-            $instructions->addPostStep('PRAGMA foreign_keys = OFF');
-        }
-
         $instructions = $this->copyAndDropTmpTable($instructions, $tableName);
         $instructions = $this->recreateIndicesAndTriggers($instructions);
-
-        if ($foreignKeysEnabled) {
-            $instructions->addPostStep('PRAGMA foreign_keys = ON');
-        }
-
-        if (
-            $foreignKeysEnabled &&
-            $validateForeignKeys
-        ) {
-            $instructions = $this->validateForeignKeys($instructions, $tableName);
-        }
 
         return $instructions;
     }
@@ -1273,7 +1261,7 @@ PCRE_PATTERN;
             $sql = str_replace(
                 $this->quoteColumnName($columnName),
                 $this->quoteColumnName($newColumnName),
-                $state['createSQL']
+                $state['createSQL'],
             );
             $this->execute($sql);
 
@@ -1302,7 +1290,7 @@ PCRE_PATTERN;
                 sprintf("/%s(?:\/\*.*?\*\/|\([^)]+\)|'[^']*?'|[^,])+([,)])/", $this->quoteColumnName($columnName)),
                 sprintf('%s %s$1', $this->quoteColumnName($newColumn->getName()), $this->getColumnSqlDefinition($newColumn)),
                 $state['createSQL'],
-                1
+                1,
             );
             $this->execute($sql);
 
@@ -1335,7 +1323,7 @@ PCRE_PATTERN;
             $sql = preg_replace(
                 sprintf("/%s\s%s.*(,\s(?!')|\)$)/U", preg_quote($this->quoteColumnName($columnName)), preg_quote($state['columnType'])),
                 '',
-                $state['createSQL']
+                $state['createSQL'],
             );
 
             if (substr($sql, -2) === ', ') {
@@ -1436,7 +1424,7 @@ PCRE_PATTERN;
             'CREATE %s ON %s (%s)',
             $this->getIndexSqlDefinition($table, $index),
             $this->quoteTableName($table->getName()),
-            $indexColumns
+            $indexColumns,
         );
 
         return new AlterInstructions([], [$sql]);
@@ -1455,7 +1443,7 @@ PCRE_PATTERN;
                 $instructions->addPostStep(sprintf(
                     'DROP INDEX %s%s',
                     $schema,
-                    $this->quoteColumnName($indexName)
+                    $this->quoteColumnName($indexName),
                 ));
             }
         }
@@ -1485,7 +1473,7 @@ PCRE_PATTERN;
                 $instructions->addPostStep(sprintf(
                     'DROP INDEX %s%s',
                     $schema,
-                    $this->quoteColumnName($indexName)
+                    $this->quoteColumnName($indexName),
                 ));
         }
 
@@ -1542,7 +1530,7 @@ PCRE_PATTERN;
         if ($constraint !== null) {
             return preg_match(
                 "/,?\s*CONSTRAINT\s*" . $this->possiblyQuotedIdentifierRegex($constraint) . '\s*FOREIGN\s+KEY/is',
-                $this->getDeclaringSql($tableName)
+                $this->getDeclaringSql($tableName),
             ) === 1;
         }
 
@@ -1649,7 +1637,7 @@ PCRE_PATTERN;
             return $newState + $state;
         });
 
-        return $this->endAlterByCopyTable($instructions, $tableName, null, null, false);
+        return $this->endAlterByCopyTable($instructions, $tableName, null, null);
     }
 
     /**
@@ -1661,7 +1649,6 @@ PCRE_PATTERN;
 
         $tableName = $table->getName();
         $instructions->addPostStep(function ($state) use ($foreignKey, $tableName) {
-            $this->execute('pragma foreign_keys = ON');
             $sql = substr($state['createSQL'], 0, -1) . ',' . $this->getForeignKeySqlDefinition($foreignKey) . '); ';
 
             //Delete indexes from original table and recreate them in temporary table
@@ -1673,13 +1660,13 @@ PCRE_PATTERN;
                     $sql .= sprintf(
                         'DROP INDEX %s%s; ',
                         $schema,
-                        $this->quoteColumnName($indexName)
+                        $this->quoteColumnName($indexName),
                     );
                     $createIndexSQL = $this->getDeclaringIndexSQL($tableName, $indexName);
                     $sql .= preg_replace(
                         "/\b{$tableName}\b/",
                         $tmpTableName,
-                        $createIndexSQL
+                        $createIndexSQL,
                     );
                 }
             }
@@ -1722,7 +1709,7 @@ PCRE_PATTERN;
         if (!$this->hasForeignKey($tableName, $columns)) {
             throw new InvalidArgumentException(sprintf(
                 'No foreign key on column(s) `%s` exists',
-                implode(', ', $columns)
+                implode(', ', $columns),
             ));
         }
 
@@ -1734,9 +1721,9 @@ PCRE_PATTERN;
                 implode(
                     '\s*,\s*',
                     array_map(
-                        fn ($column) => $this->possiblyQuotedIdentifierRegex($column, false),
-                        $columns
-                    )
+                        fn($column) => $this->possiblyQuotedIdentifierRegex($column, false),
+                        $columns,
+                    ),
                 ),
             );
             $sql = preg_replace($search, '', $state['createSQL']);
@@ -1794,7 +1781,7 @@ PCRE_PATTERN;
         if ($sqlTypeDef === null) {
             // in SQLite columns can legitimately have null as a type, which is distinct from the empty string
             $name = null;
-        } elseif (!preg_match('/^([a-z]+)(_(?:integer|float|text|blob))?(?:\((\d+)(?:,(\d+))?\))?$/i', $sqlTypeDef, $match)) {
+        } elseif (!preg_match('/^([a-z]+)(_(?:integer|float|text|blob))?(?:\((\d+)(?:,[ ]*(\d+))?\))?$/i', $sqlTypeDef, $match)) {
             // doesn't match the pattern of a type we'd know about
             $name = Literal::from($sqlTypeDef);
         } else {
@@ -2000,5 +1987,45 @@ PCRE_PATTERN;
         }
 
         return $this->decoratedConnection = $this->buildConnection(SqliteDriver::class, $options);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function preExecuteActions(array $updateSequences): array
+    {
+        $foreignKeysEnabled = (bool)$this->fetchRow('PRAGMA foreign_keys')['foreign_keys'];
+
+        if (!$foreignKeysEnabled) {
+            foreach ($updateSequences as $updates) {
+                foreach ($updates as $update) {
+                    foreach ($update->getActions() as $action) {
+                        if ($action instanceof AddForeignKey) {
+                            $foreignKeysEnabled = true;
+                            break 3;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($foreignKeysEnabled) {
+            $this->execute('PRAGMA foreign_keys = OFF');
+        }
+
+        return [
+            'foreignKeysEnabled' => $foreignKeysEnabled,
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function postExecuteActions(array $tableNames, array $preOptions): void
+    {
+        if ($preOptions['foreignKeysEnabled']) {
+            $this->execute('PRAGMA foreign_keys = ON');
+            $this->validateForeignKeys($tableNames);
+        }
     }
 }

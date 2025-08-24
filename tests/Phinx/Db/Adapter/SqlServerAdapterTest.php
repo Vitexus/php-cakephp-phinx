@@ -5,6 +5,8 @@ namespace Test\Phinx\Db\Adapter;
 
 use BadMethodCallException;
 use Cake\Database\Query;
+use Cake\I18n\Date;
+use Cake\I18n\DateTime;
 use InvalidArgumentException;
 use PDO;
 use Phinx\Db\Adapter\SqlServerAdapter;
@@ -96,7 +98,7 @@ class SqlServerAdapterTest extends TestCase
             $this->assertInstanceOf(
                 'InvalidArgumentException',
                 $e,
-                'Expected exception of type InvalidArgumentException, got ' . get_class($e)
+                'Expected exception of type InvalidArgumentException, got ' . get_class($e),
             );
             $this->assertStringContainsString('There was a problem connecting to the database', $e->getMessage());
         } finally {
@@ -586,7 +588,7 @@ WHERE t.name='ntable'");
             $this->assertInstanceOf(
                 'InvalidArgumentException',
                 $e,
-                'Expected exception of type InvalidArgumentException, got ' . get_class($e)
+                'Expected exception of type InvalidArgumentException, got ' . get_class($e),
             );
             $this->assertEquals('The specified column does not exist: column2', $e->getMessage());
         }
@@ -882,7 +884,7 @@ WHERE t.name='ntable'");
                ->addColumn('lname', 'string')
                ->addIndex(
                    ['fname', 'lname'],
-                   ['name' => 'twocolumnuniqueindex', 'unique' => true]
+                   ['name' => 'twocolumnuniqueindex', 'unique' => true],
                )
                ->save();
         $this->assertTrue($table2->hasIndex(['fname', 'lname']));
@@ -943,17 +945,17 @@ WHERE t.name='ntable'");
             ->addForeignKey(
                 ['ref_table_id', 'ref_table_field1'],
                 'ref_table',
-                ['id', 'field1']
+                ['id', 'field1'],
             )
             ->addForeignKey(
                 ['ref_table_field1', 'ref_table_id'],
                 'ref_table',
-                ['field1', 'id']
+                ['field1', 'id'],
             )
             ->addForeignKey(
                 ['ref_table_id', 'ref_table_field1', 'ref_table_field2'],
                 'ref_table',
-                ['id', 'field1', 'field2']
+                ['id', 'field1', 'field2'],
             )
             ->save();
 
@@ -962,11 +964,11 @@ WHERE t.name='ntable'");
         $this->assertFalse($this->adapter->hasForeignKey($table->getName(), ['ref_table_id', 'ref_table_field1']));
         $this->assertTrue(
             $this->adapter->hasForeignKey($table->getName(), ['ref_table_id', 'ref_table_field1', 'ref_table_field2']),
-            'dropForeignKey() should only affect foreign keys that comprise of exactly the given columns'
+            'dropForeignKey() should only affect foreign keys that comprise of exactly the given columns',
         );
         $this->assertTrue(
             $this->adapter->hasForeignKey($table->getName(), ['ref_table_field1', 'ref_table_id']),
-            'dropForeignKey() should only affect foreign keys that comprise of columns in exactly the given order'
+            'dropForeignKey() should only affect foreign keys that comprise of columns in exactly the given order',
         );
 
         $this->assertTrue($this->adapter->hasForeignKey($table->getName(), ['ref_table_field1', 'ref_table_id']));
@@ -996,7 +998,7 @@ WHERE t.name='ntable'");
                 'ref_table_fk_2',
                 ['ref_table_id', 'ref_table_field1'],
                 'ref_table',
-                ['id', 'field1']
+                ['id', 'field1'],
             )
             ->save();
 
@@ -1040,14 +1042,14 @@ WHERE t.name='ntable'");
             ->addForeignKey(
                 ['ref_table_id', 'ref_table_field1'],
                 'ref_table',
-                ['id', 'field1']
+                ['id', 'field1'],
             )
             ->save();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(sprintf(
             'No foreign key on column(s) `%s` exists',
-            implode(', ', $columns)
+            implode(', ', $columns),
         ));
 
         $this->adapter->dropForeignKey($table->getName(), $columns);
@@ -1069,7 +1071,7 @@ WHERE t.name='ntable'");
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(sprintf(
             'No foreign key on column(s) `%s` exists',
-            implode(', ', ['ref_table_id'])
+            implode(', ', ['ref_table_id']),
         ));
 
         $this->adapter->dropForeignKey($table->getName(), ['ref_table_id']);
@@ -1299,7 +1301,7 @@ WHERE t.name='ntable'");
                   [
                       'column1' => 'value3',
                       'column2' => 3,
-                  ]
+                  ],
               );
         $this->adapter->bulkinsert($table->getTable(), $table->getData());
         $table->reset();
@@ -1345,6 +1347,30 @@ WHERE t.name='ntable'");
         $this->assertEquals('2025-01-01 00:00:00.000', $rows[2]['column2']);
     }
 
+    public function testBulkInsertDates(): void
+    {
+        $data = [
+            [
+                'name' => 'foo',
+                'created' => new Date(),
+            ],
+            [
+                'name' => 'bar',
+                'created' => new DateTime(),
+            ],
+        ];
+        $table = new Table('table1', [], $this->adapter);
+        $table->addColumn('name', 'string')
+            ->addColumn('created', 'datetime')
+            ->insert($data)
+            ->save();
+        $rows = $this->adapter->fetchAll('SELECT * FROM table1');
+        $this->assertEquals('foo', $rows[0]['name']);
+        $this->assertEquals('bar', $rows[1]['name']);
+        $this->assertEquals($data[0]['created']->format('Y-m-d H:i:s.000'), $rows[0]['created']);
+        $this->assertEquals($data[1]['created']->format('Y-m-d H:i:s.000'), $rows[1]['created']);
+    }
+
     public function testInsertData()
     {
         $table = new Table('table1', [], $this->adapter);
@@ -1364,7 +1390,7 @@ WHERE t.name='ntable'");
                   [
                       'column1' => 'value3',
                       'column2' => 3,
-                  ]
+                  ],
               )
               ->save();
 
@@ -1412,6 +1438,34 @@ WHERE t.name='ntable'");
         $this->assertMatchesRegularExpression('/[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}/', $rows[0]['column3']);
         $this->assertEquals('2024-01-01 00:00:00.000', $rows[1]['column3']);
         $this->assertEquals('2025-01-01 00:00:00.000', $rows[2]['column3']);
+    }
+
+    public function testInsertDates(): void
+    {
+        $data = [
+            [
+                'name' => 'foo',
+                'created' => new Date(),
+                'column3' => 'foo',
+            ],
+            [
+                'name' => 'bar',
+                'created' => new DateTime(),
+            ],
+        ];
+        $table = new Table('table1', [], $this->adapter);
+        $table->addColumn('name', 'string')
+            ->addColumn('created', 'datetime')
+            ->addColumn('column3', 'string', ['null' => true, 'default' => null])
+            ->insert($data)
+            ->save();
+        $rows = $this->adapter->fetchAll('SELECT * FROM table1');
+        $this->assertEquals('foo', $rows[0]['name']);
+        $this->assertEquals('bar', $rows[1]['name']);
+        $this->assertEquals($data[0]['created']->format('Y-m-d H:i:s.000'), $rows[0]['created']);
+        $this->assertEquals($data[1]['created']->format('Y-m-d H:i:s.000'), $rows[1]['created']);
+        $this->assertEquals('foo', $rows[0]['column3']);
+        $this->assertNull($rows[1]['column3']);
     }
 
     public function testTruncateTable()
@@ -1521,7 +1575,7 @@ OUTPUT;
         $this->assertEquals(1, $stm->rowCount());
         $this->assertEquals(
             ['id' => 2, 'string_col' => 'value2', 'int_col' => '2'],
-            $stm->fetch('assoc')
+            $stm->fetch('assoc'),
         );
 
         $stm->closeCursor();
