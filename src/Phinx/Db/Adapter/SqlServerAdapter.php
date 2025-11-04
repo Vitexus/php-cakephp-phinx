@@ -476,10 +476,15 @@ class SqlServerAdapter extends PdoAdapter
                    ->setNull($columnInfo['null'] !== 'NO')
                    ->setDefault($this->parseDefault($columnInfo['default']))
                    ->setIdentity($columnInfo['identity'] === '1')
+                   ->setScale($columnInfo['scale'] ? (int)$columnInfo['scale'] : null)
                    ->setComment($this->getColumnComment($columnInfo['table_name'], $columnInfo['name']));
 
             if (!empty($columnInfo['char_length'])) {
                 $column->setLimit((int)$columnInfo['char_length']);
+            }
+
+            if ($type === self::PHINX_TYPE_DECIMAL) {
+                $column->setPrecision((int)$columnInfo['precision']);
             }
 
             $columns[$columnInfo['name']] = $column;
@@ -1063,8 +1068,9 @@ ORDER BY T.[name], I.[index_id];";
     {
         $type = (string)$type;
         switch ($type) {
-            case static::PHINX_TYPE_FLOAT:
             case static::PHINX_TYPE_DECIMAL:
+                return ['name' => $type, 'precision' => 18, 'scale' => 0];
+            case static::PHINX_TYPE_FLOAT:
             case static::PHINX_TYPE_DATETIME:
             case static::PHINX_TYPE_TIME:
             case static::PHINX_TYPE_DATE:
@@ -1237,7 +1243,7 @@ ORDER BY T.[name], I.[index_id];";
                 'tinyint',
                 'smallint',
             ];
-            if ($sqlType['name'] === static::PHINX_TYPE_DECIMAL && $column->getPrecision() && $column->getScale()) {
+            if ($sqlType['name'] === static::PHINX_TYPE_DECIMAL && ($column->getPrecision() || $column->getScale())) {
                 $buffer[] = sprintf(
                     '(%s, %s)',
                     $column->getPrecision() ?: $sqlType['precision'],
