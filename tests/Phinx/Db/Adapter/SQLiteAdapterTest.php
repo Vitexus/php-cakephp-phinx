@@ -18,6 +18,7 @@ use Phinx\Db\Table\Column;
 use Phinx\Db\Table\ForeignKey;
 use Phinx\Util\Expression;
 use Phinx\Util\Literal;
+use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use RuntimeException;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -25,7 +26,6 @@ use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\NullOutput;
-use Test\Phinx\TestCase;
 use UnexpectedValueException;
 
 class SQLiteAdapterTest extends TestCase
@@ -1319,7 +1319,39 @@ class SQLiteAdapterTest extends TestCase
             ['column15', 'smallinteger', []],
             ['column15', 'integer', []],
             ['column23', 'json', []],
+            ['decimal_precision_scale', 'decimal', ['precision' => 10, 'scale' => 2]],
+            ['decimal_precision_zero_scale', 'decimal', ['precision' => 10, 'scale' => 0]],
         ];
+    }
+
+    /**
+     * @dataProvider columnsProvider
+     */
+    public function testGetColumns($colName, $type, $options)
+    {
+        $table = new Table('t', [], $this->adapter);
+        $table->addColumn($colName, $type, $options)->save();
+
+        $columns = $this->adapter->getColumns('t');
+        $this->assertCount(2, $columns);
+        $this->assertEquals($colName, $columns[1]->getName());
+        $this->assertEquals($type, $columns[1]->getType());
+
+        if (isset($options['limit'])) {
+            $this->assertEquals($options['limit'], $columns[1]->getLimit());
+        }
+
+        if (isset($options['precision'])) {
+            $this->assertEquals($options['precision'], $columns[1]->getPrecision());
+        }
+
+        if (isset($options['scale'])) {
+            $this->assertEquals($options['scale'], $columns[1]->getScale());
+        }
+
+        if (isset($options['comment'])) {
+            $this->assertEquals($options['comment'], $columns[1]->getComment());
+        }
     }
 
     public function testAddIndex()
@@ -3166,7 +3198,7 @@ INPUT;
      * @covers \Phinx\Db\Adapter\SQLiteAdapter::getTableInfo
      * @covers \Phinx\Db\Adapter\SQLiteAdapter::getColumns
      */
-    public function testGetColumns()
+    public function testGetMultipleColumns()
     {
         $conn = $this->adapter->getConnection();
         $conn->exec('create table t(a integer, b text, c char(5), d integer(12,6), e integer not null, f integer null)');

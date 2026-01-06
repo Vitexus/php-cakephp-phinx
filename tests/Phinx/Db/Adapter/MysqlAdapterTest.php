@@ -1389,6 +1389,7 @@ class MysqlAdapterTest extends TestCase
             ['column6', 'float', []],
             ['column7', 'decimal', []],
             ['decimal_precision_scale', 'decimal', ['precision' => 10, 'scale' => 2]],
+            ['decimal_precision_zero_scale', 'decimal', ['precision' => 15, 'scale' => 0]],
             ['decimal_limit', 'decimal', ['limit' => 10]],
             ['decimal_precision', 'decimal', ['precision' => 10]],
             ['column8', 'datetime', []],

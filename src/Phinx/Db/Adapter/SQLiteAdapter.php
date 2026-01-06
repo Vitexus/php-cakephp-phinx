@@ -1168,8 +1168,8 @@ PCRE_PATTERN;
             $writeColumns[] = $writeName;
         }
 
-        $selectColumns = array_filter($selectColumns, 'strlen');
-        $writeColumns = array_filter($writeColumns, 'strlen');
+        $selectColumns = array_filter($selectColumns, fn($v) => $v && strlen($v) > 0);
+        $writeColumns = array_filter($writeColumns, fn($v) => $v && strlen($v) > 0);
         $selectColumns = array_map([$this, 'quoteColumnName'], $selectColumns);
         $writeColumns = array_map([$this, 'quoteColumnName'], $writeColumns);
 
@@ -1868,7 +1868,7 @@ PCRE_PATTERN;
                 $def .= '(' . ($column->getLimit() ?: $sqlType['limit']) . ')';
             }
         }
-        if ($column->getPrecision() && $column->getScale()) {
+        if ($column->getPrecision() && $column->getScale() !== null) {
             $def .= '(' . $column->getPrecision() . ',' . $column->getScale() . ')';
         }
 
