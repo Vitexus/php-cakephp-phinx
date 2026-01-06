@@ -1222,6 +1222,14 @@ PCRE_PATTERN;
      */
     protected function beginAlterByCopyTable(string $tableName): AlterInstructions
     {
+        // Check if table exists before attempting to alter it
+        if (!$this->hasTable($tableName)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Cannot alter table "%s" because it does not exist. You may need to create the table first using ->create() instead of ->update().',
+                $tableName
+            ));
+        }
+
         $instructions = new AlterInstructions();
         $instructions->addPostStep(function ($state) use ($tableName) {
             $tmpTableName = "tmp_{$tableName}";
