@@ -1170,7 +1170,8 @@ PCRE_PATTERN;
                 if ($newColumnName === false) {
                     continue;
                 }
-                $selectName = $newColumnName;
+                // For column renaming: selectName stays as original column name, writeName becomes new name
+                // selectName = $selectName; // Keep original name for SELECT from source table
             }
 
             $selectColumns[] = $selectName;
