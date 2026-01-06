@@ -1127,7 +1127,10 @@ PCRE_PATTERN;
                 $state['selectColumns'],
             );
 
-            $this->execute(sprintf('DROP TABLE %s', $this->quoteTableName($tableName)));
+            // Only drop the table if it exists to avoid "no such table" errors
+            if ($this->hasTable($tableName)) {
+                $this->execute(sprintf('DROP TABLE %s', $this->quoteTableName($tableName)));
+            }
             $this->execute(sprintf(
                 'ALTER TABLE %s RENAME TO %s',
                 $this->quoteTableName($state['tmpTableName']),
