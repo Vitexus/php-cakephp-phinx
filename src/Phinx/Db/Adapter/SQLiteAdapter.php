@@ -1094,6 +1094,11 @@ PCRE_PATTERN;
      */
     protected function copyDataToNewTable(string $tableName, string $tmpTableName, array $writeColumns, array $selectColumns): void
     {
+        // Skip copy if no columns to copy (edge case: all columns dropped)
+        if (empty($writeColumns) || empty($selectColumns)) {
+            return;
+        }
+
         $sql = sprintf(
             'INSERT INTO %s(%s) SELECT %s FROM %s',
             $this->quoteTableName($tableName),
@@ -1161,7 +1166,11 @@ PCRE_PATTERN;
                 $writeName = $newColumnName;
                 $found = true;
                 $columnType = $column['type'];
-                $selectName = $newColumnName === false ? $newColumnName : $selectName;
+                // If dropping a column (newColumnName === false), skip adding it to columns arrays
+                if ($newColumnName === false) {
+                    continue;
+                }
+                $selectName = $newColumnName;
             }
 
             $selectColumns[] = $selectName;
