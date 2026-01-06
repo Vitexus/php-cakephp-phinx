@@ -45,3 +45,10 @@ phpunit.xml
 
 # sqlite test database
 phinx_testing.sqlite3
+
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/php-cakephp-phinx.debhelper.log
+debian/php-cakephp-phinx.substvars
+debian/php-cakephp-phinx/
+

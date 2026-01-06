@@ -1,8 +1,14 @@
-php-cakephp-phinx (0.16.4) UNRELEASED; urgency=medium
+php-cakephp-phinx (0.16.10) UNRELEASED; urgency=medium
+
+  * v0.16.10 release
+
+ -- vitex <info@vitexsoftware.cz>  Tue, 06 Jan 2026 19:39:13 +0100
+
+php-cakephp-phinx (0.16.4) unstable; urgency=medium
 
   * Backport
 
- -- vitex <info@vitexsoftware.cz>  Thu, 03 Oct 2024 11:47:18 +0200
+ -- vitex <info@vitexsoftware.cz>  Tue, 06 Jan 2026 19:38:59 +0100
 
 php-cakephp-phinx (0.12.10) unstable; urgency=medium
 
