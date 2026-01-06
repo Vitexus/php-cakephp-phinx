@@ -763,6 +763,26 @@ PCRE_PATTERN;
     protected function getAddColumnInstructions(Table $table, Column $column): AlterInstructions
     {
         $tableName = $table->getName();
+        $columnName = $column->getName();
+
+        // Check if column already exists
+        if ($this->hasColumn($tableName, $columnName)) {
+            throw new \InvalidArgumentException(sprintf(
+                "Migration Failed: Column '%s' already exists in table '%s'.\n\n" .
+                "This migration is trying to add a column that already exists.\n" .
+                "Please check:\n" .
+                "1. If this migration has already been run\n" .
+                "2. If another migration already added this column\n" .
+                "3. Consider using changeColumn() to modify existing columns\n" .
+                "4. Or add a check: if (!%s->hasColumn('%s', '%s')) before adding the column\n\n" .
+                "Use hasColumn() to check existence before adding columns.",
+                $columnName,
+                $tableName,
+                '$table',
+                $tableName,
+                $columnName
+            ));
+        }
 
         $instructions = $this->beginAlterByCopyTable($tableName);
 
@@ -1225,7 +1245,13 @@ PCRE_PATTERN;
         // Check if table exists before attempting to alter it
         if (!$this->hasTable($tableName)) {
             throw new \InvalidArgumentException(sprintf(
-                'Cannot alter table "%s" because it does not exist. You may need to create the table first using ->create() instead of ->update().',
+                "Migration Failed: Table '%s' does not exist.\n\n" .
+                "This migration is trying to modify a table that hasn't been created yet.\n" .
+                "Please check:\n" .
+                "1. That the table creation migration ran successfully\n" .
+                "2. That this migration uses ->create() instead of ->update() if creating a new table\n" .
+                "3. That migrations are running in the correct order\n\n" .
+                "Use ->create() for new tables, ->update() only for existing tables.",
                 $tableName
             ));
         }
