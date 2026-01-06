@@ -1099,6 +1099,16 @@ PCRE_PATTERN;
             return;
         }
 
+        // Skip if source table doesn't exist
+        if (!$this->hasTable($tmpTableName)) {
+            return;
+        }
+
+        // Skip if target table doesn't exist (should be created first)
+        if (!$this->hasTable($tableName)) {
+            return;
+        }
+
         $sql = sprintf(
             'INSERT INTO %s(%s) SELECT %s FROM %s',
             $this->quoteTableName($tableName),
@@ -1120,6 +1130,12 @@ PCRE_PATTERN;
     protected function copyAndDropTmpTable(AlterInstructions $instructions, string $tableName): AlterInstructions
     {
         $instructions->addPostStep(function ($state) use ($tableName) {
+            // Only proceed if the temporary table exists
+            if (!$this->hasTable($state['tmpTableName'])) {
+                // If temp table doesn't exist, we can't perform the operation
+                return $state;
+            }
+
             $this->copyDataToNewTable(
                 $state['tmpTableName'],
                 $tableName,
@@ -1131,6 +1147,8 @@ PCRE_PATTERN;
             if ($this->hasTable($tableName)) {
                 $this->execute(sprintf('DROP TABLE %s', $this->quoteTableName($tableName)));
             }
+            
+            // Rename temp table to final table name
             $this->execute(sprintf(
                 'ALTER TABLE %s RENAME TO %s',
                 $this->quoteTableName($state['tmpTableName']),
