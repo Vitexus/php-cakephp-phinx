@@ -24,5 +24,14 @@
  * IN THE SOFTWARE.
  */
 
-$app = require __DIR__ . '/../app/phinx.php';
+if (!include_once('Composer/Autoload/ClassLoader.php')) {
+    echo "\nE: install composer for the CLI to work!\n";
+    exit(255);
+}
+
+$loader = new \Composer\Autoload\ClassLoader();
+$loader->setUseIncludePath(true);
+$loader->register();
+
+$app = new Phinx\Console\PhinxApplication();
 $app->run();

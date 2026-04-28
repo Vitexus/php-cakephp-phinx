@@ -2,20 +2,14 @@
 
 export DH_VERBOSE = 1
 
+PKG_VERSION := $(shell dpkg-parsechangelog -S Version | sed 's/~.*//')
+PKG_SOURCE  := $(shell jq -r '.name' composer.json)
+
 %:
 	dh $@
 
-override_dh_clean:
-	composer update
-	rm -f php-cakephp-phinx.phar
-	dh_clean
-
-override_dh_prep:
-	php -d phar.readonly=off /usr/bin/phar-composer -n build --ansi .
-	dh_prep
-
 override_dh_install:
 	dh_install
-	mv debian/php-cakephp-phinx/usr/bin/phinx.phar debian/php-cakephp-phinx/usr/bin/phinx
-
-
+	install -m 644 debian/autoload.php debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
+	sed -i "s|: 'unknown'|: '$(PKG_SOURCE)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
+	sed -i "s|: '0.0.0'|: '$(PKG_VERSION)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php

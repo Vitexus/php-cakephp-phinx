@@ -1,23 +1,18 @@
 Source: php-cakephp-phinx
 Section: php
 Priority: optional
-Maintainer: Teckids Debian Task Force <tdtf@lists.teckids.org>
-Uploaders: Thorsten Glaser <tg@mirbsd.de>, Dominik George <natureshadow@debian.org>
-Build-Depends: debhelper-compat (= 12), pkg-php-tools (>= 1.7~), phar-composer, php-intl
-Standards-Version: 4.4.1
+Maintainer: Vítězslav Dvořák <info@vitexsoftware.cz>
+Build-Depends: debhelper-compat (= 13), jq, php-intl
+Standards-Version: 4.6.2
 Homepage: https://phinx.org/
+Vcs-Git: https://github.com/Vitexus/php-cakephp-phinx.git
 Rules-Requires-Root: no
-Vcs-Git: https://salsa.debian.org/tdtf-team/php-robmorgan-phinx.git
-Vcs-Browser: https://salsa.debian.org/tdtf-team/php-robmorgan-phinx
 
 Package: php-cakephp-phinx
 Architecture: all
-Depends: ${misc:Depends}, ${phpcomposer:Debian-require},php-intl,php-pdo
-Recommends: ${phpcomposer:Debian-recommend}, composer
-Suggests: ${phpcomposer:Debian-suggest}
-Replaces: ${phpcomposer:Debian-replace}
-Breaks: ${phpcomposer:Debian-conflict}, ${phpcomposer:Debian-replace}
-Provides: ${phpcomposer:Debian-provide}, phinx, php-robmorgan-phinx
+Depends: ${misc:Depends}, php-cli | php, composer, php-intl, php-pdo,
+ php-cakephp-database, php-psr-container, php-symfony-console, php-symfony-config
+Provides: phinx, php-robmorgan-phinx
 Description: Simple PHP Database Migrations
  Phinx makes it ridiculously easy to manage the database migrations for
  your PHP app. In less than 5 minutes, you can install Phinx and create

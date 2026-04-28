@@ -128,11 +128,7 @@ class PhinxApplication extends Application
             return $this->version = $gitTag;
         }
 
-        // Otherwise fallback to the version as reported by composer
-        if (class_exists(InstalledVersions::class)) {
-            return $this->version = InstalledVersions::getPrettyVersion('robmorgan/phinx') ?? 'UNKNOWN';
-        }
-
-        return $this->version = 'UNKNOWN';
+        // Otherwise fallback to the version as reported by dpkg
+        return $this->version = trim((string)shell_exec("dpkg-query -Wf '\${Version}' php-cakephp-phinx 2>/dev/null")) ?: 'UNKNOWN';
     }
 }
