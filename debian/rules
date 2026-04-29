@@ -11,5 +11,5 @@ PKG_SOURCE  := $(shell jq -r '.name' composer.json)
 override_dh_install:
 	dh_install
 	install -m 644 debian/autoload.php debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
-	sed -i "s|: 'unknown'|: '$(PKG_SOURCE)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
-	sed -i "s|: '0.0.0'|: '$(PKG_VERSION)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
+	sed -i "s|'unknown'|'$(PKG_SOURCE)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
+	sed -i "s|'0.0.0'|'$(PKG_VERSION)'|" debian/php-cakephp-phinx/usr/share/php/Phinx/autoload.php
