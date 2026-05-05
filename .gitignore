@@ -51,4 +51,5 @@ debian/debhelper-build-stamp
 debian/php-cakephp-phinx.debhelper.log
 debian/php-cakephp-phinx.substvars
 debian/php-cakephp-phinx/
+debian/files
 
