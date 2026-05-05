@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>org.phinx.php_cakephp_phinx</id>
+  <icon type="stock">php-cakephp-phinx</icon>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Phinx</name>
+  <summary>Simple PHP Database Migrations</summary>
+  <description>
+    <p>
+      Phinx makes it ridiculously easy to manage database migrations for your PHP app. In less than 5 minutes, you can install Phinx and create your first database migration. Phinx is just about migrations without all the bloat of a database ORM system or framework.
+    </p>
+  </description>
+  <categories>
+    <category>Development</category>
+    <category>ConsoleOnly</category>
+  </categories>
+  <url type="homepage">https://phinx.org/</url>
+  <url type="bugtracker">https://github.com/cakephp/phinx/issues</url>
+  <developer id="org.phinx">
+    <name>CakePHP</name>
+  </developer>
+  <provides>
+    <binary>phinx</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+</component>
