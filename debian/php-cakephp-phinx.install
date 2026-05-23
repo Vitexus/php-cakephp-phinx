@@ -1,4 +1,4 @@
-php-cakephp-phinx.svg	usr/share/icons/hicolor/scalable/apps/
+debian/php-cakephp-phinx.svg	usr/share/icons/hicolor/scalable/apps/
 debian/org.phinx.php_cakephp_phinx.metainfo.xml	usr/share/metainfo/
 bin/phinx usr/bin/
 src/Phinx usr/share/php/
