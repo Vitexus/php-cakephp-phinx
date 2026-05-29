@@ -10,8 +10,9 @@ Rules-Requires-Root: no
 
 Package: php-cakephp-phinx
 Architecture: all
+Pre-Depends: php-symfony-polyfill-php80
 Depends: ${misc:Depends}, php-cli | php, composer, php-intl, php-pdo,
- php-cakephp-database, php-psr-container, php-symfony-console, php-symfony-config, php-symfony-polyfill-php80
+ php-cakephp-database, php-psr-container, php-symfony-console, php-symfony-config
 Provides: phinx, php-robmorgan-phinx
 Description: Simple PHP Database Migrations
  Phinx makes it ridiculously easy to manage the database migrations for
